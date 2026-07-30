@@ -11,9 +11,7 @@ document.getElementById('app').innerHTML=
 '  <img class="chat-ava" src="'+A+'img/mascot.jpg" alt="">'+
 '  <div><div class="chat-head-name">Банка DZEN</div><div class="chat-head-st" id="head-st">онлайн · следит за энергией</div></div>'+
 '  <div class="chat-head-btns">'+
-'   <button class="chip-ic" id="hb-check" aria-label="Замер дня" title="Замер дня">⚡</button>'+
-'   <button class="chip-ic" id="hb-sum" aria-label="Сводка недели" title="Сводка недели">◷</button>'+
-'   <button class="chip-ic" id="hb-achv" aria-label="Ачивки" title="Ачивки">🏆</button>'+
+'   <button class="chip-ic" id="hb-again" aria-label="Замерить заново" title="Замерить заново">🔄</button>'+
 '  </div></div>'+
 ' <div class="chat-scroll" id="scroll"></div>'+
 ' <div class="chat-input">'+
@@ -85,18 +83,13 @@ function handleText(text){
 function botTalk(text){typing(true);
   chatAnswer(text,function(ans,closing){typing(false);el(ans,'msg bot');
     if(closing){closeTalk();return;}
-    if(pending===null&&S.quiz&&S.habits.length)offerMain();});}
-/* мягкое завершение разговора + крючок на завтра */
+    if(pending===null&&S.quiz)offerMain();});}
+/* мягкое завершение разговора — без крючков на возврат */
 function closeTalk(){
   clearChips();
   setTimeout(function(){
-    var checked=S.lastCheck===todayStr();
     chatReset();
-    if(checked){
-      el('Завтра вечером отметишься — спрошу, как зашло 🌿','msg bot');
-      chips([{t:'🏆 Мои ачивки',fn:showAchv},{t:'⏰ Напоминание на вечер',fn:showRemind}]);}
-    else{
-      chips([{t:'⚡ Замерить день · 30 сек',fn:startCheck},{t:'⏰ Напомнить вечером',fn:showRemind}]);}
+    chips([{t:'🔄 Замерить заново',fn:restartQuiz}]);
   },1100);}
 function num0100(text){
   var t=wordsToNums(text.toLowerCase());
@@ -109,29 +102,16 @@ function num0100(text){
 
 /* ---------- сценарии ---------- */
 function greet(){
-  var t=todayStr();
   if(!S.quiz){
-    botMsg('Привет! Я банка DZEN 🥤 Слежу за твоей энергией, пока мир испытывает её на прочность: курс, ставка, новости…',function(){
-    botMsg('Давай замерим, насколько ты в ресурсе. Это 5 вопросов, минута. Сколько сейчас энергии, 0–100?',function(){
-      askEnergy(function(v){onbAns.energy=v;askSleep();});});});}
-  else if(!S.habits.length){botMsg('Мы остановились на выборе привычки. Продолжим?',function(){showShelf();});}
-  else if(S.lastCheck!==t){var d=Math.min((S.streak%7)+1,7);
-    botMsg('С возвращением! Серия '+d+' из 7 ждёт замера — 30 секунд. Начнём?',function(){
-      chips([{t:'⚡ Замерить день',fn:startCheck},{t:'Позже',fn:function(){botMsg('Ок, я тут. Кнопка ⚡ сверху — когда будешь готов.');}}]);});}
-  else{botMsg('Сегодня уже засчитано. Вот как идёт сезон:',function(){
-    summaryCard();
-    setTimeout(function(){
-      var ins=bestInsight();
-      if(ins)botMsg(ins,offerMain);
-      else botMsg('Спроси что угодно про энергию, сон или привычки — отвечу коротко и по делу.',offerMain);
-    },900);});}
+    botMsg('Привет! Я банка DZEN 🥤 Слежу за энергией, пока мир испытывает её на прочность: курс, ставка, новости…',function(){
+    botMsg('Давай сыграем: 4 вопроса — и я угадаю, насколько ты сейчас в ресурсе. Поехали.',function(){askSleep();});});}
+  else{
+    botMsg('С возвращением! Могу замерить заново — это минута. Или просто спроси про энергию, сон, сахар, стресс.',function(){
+      chips([{t:'🔄 Замерить заново',fn:restartQuiz}]);});}
 }
 function offerMain(){clearChips();
-  var done=S.lastCheck===todayStr();
-  var list=done?[{t:'Сводка недели',fn:showSummary},{t:'Ачивки',fn:showAchv}]
-               :[{t:'Замерить день',fn:startCheck},{t:'Сводка недели',fn:showSummary}];
-  list.push({t:'Напоминание',fn:showRemind});
-  chips(list);}
+  chips([{t:'🔄 Замерить заново',fn:restartQuiz}]);}
+function restartQuiz(){clearChips();hideCancel();S.quiz=null;save();onbAns={};chatReset();askSleep();}
 
 /* онбординг */
 var onbAns={};
@@ -183,14 +163,30 @@ function askStress(){
     chips(Object.keys(m).map(function(k){return {t:k,fn:function(){meMsg(k);onbAns.stress=m[k];onbDone();}};}));
     expect(function(t){var n=num0100(t);if(n===null)return false;onbAns.stress=n;onbDone();return true;});});}
 function onbDone(){
-  var a={energy:onbAns.energy,sleep:onbAns.sleep,sugar:onbAns.sugar,screen:(onbAns.screen||3),move:3,stress:onbAns.stress};
-  S.quiz={a:a,index:calcIndex(a),date:todayStr(),doping:onbAns.doping,crash:onbAns.crash};save();
-  var v=verdict(S.quiz.index);
-  botMsg('Считаю… готово. Твой индекс ресурса: '+S.quiz.index+' из 100.',function(){
-  botMsg('«'+v[0]+'» — '+v[1],function(){
-  var typ=typeOf(S.quiz.index,a,onbAns.doping,onbAns.crash);
-  botMsg('Твой типаж: '+typ.emoji+' '+typ.name+'. '+typ.line,function(){
-  showTypeCard(typ);});});});}
+  /* банка УГАДЫВАЕТ заряд по косвенным ответам — прямого вопроса про энергию больше нет */
+  var dopV={coffee:55,sugar:25,energy:30,will:70}[onbAns.doping];if(dopV==null)dopV=50;
+  var crV={morning:25,afternoon:45,evening:65,fog:15}[onbAns.crash];if(crV==null)crV=45;
+  var idx=Math.round(.35*Math.round(onbAns.sleep/7*100)+.25*dopV+.2*crV+.2*(100-onbAns.stress));
+  idx=Math.max(5,Math.min(95,idx));
+  var a={energy:idx,sleep:onbAns.sleep,sugar:onbAns.sugar,screen:(onbAns.screen||3),move:3,stress:onbAns.stress};
+  S.quiz={a:a,index:idx,date:todayStr(),doping:onbAns.doping,crash:onbAns.crash};save();
+  var v=verdict(idx);
+  botMsg('Так… сон, допинг, время провала, внешний фон. Складываю картинку.',function(){
+  botMsg('Ставлю на то, что ты сейчас примерно на '+idx+' из 100. «'+v[0]+'» — '+v[1],function(){
+  botMsg('Угадал?',function(){
+    chips([
+      {t:'🎯 В точку',fn:function(){meMsg('В точку');
+        botMsg('Я же банка. Мне сверху видно 😌',showType);}},
+      {t:'У меня повыше',fn:function(){meMsg('У меня повыше');bumpIndex(10);
+        botMsg('Принял, поднимаю до '+S.quiz.index+'. Люблю оптимистов.',showType);}},
+      {t:'Пониже',fn:function(){meMsg('Пониже');bumpIndex(-10);
+        botMsg('Честно. Опускаю до '+S.quiz.index+' — честный замер полезнее красивого.',showType);}}]);
+    expect(function(text){showType();return true;});});});});}
+function bumpIndex(d){S.quiz.index=Math.max(5,Math.min(95,S.quiz.index+d));S.quiz.a.energy=S.quiz.index;save();}
+function showType(){
+  clearChips();
+  var typ=typeOf(S.quiz.index,S.quiz.a,S.quiz.doping,S.quiz.crash);
+  botMsg('Диагноз готов. Ты — '+typ.emoji+' «'+typ.name+'». '+typ.line,function(){showTypeCard(typ);});}
 /* карточка типажа — по образцу finale(): canvas → картинка в сообщении бота → чипы → продолжение потока */
 function showTypeCard(typ){
   var cv=document.createElement('canvas');cv.width=1080;cv.height=1350;
@@ -205,10 +201,27 @@ function showTypeCard(typ){
     expect(function(text){afterTypeCard();return true;});
   },600);}
 function afterTypeCard(){
+  /* личный разбор: главная утечка + 2 точных совета по ответам, без «вернись завтра» */
   var a=S.quiz.a;
-  var fs=factors(a),mf=fs[0];fs.forEach(function(f){if(f.v<mf.v)mf=f;});
-  S.recommend=LEAK2HABIT[mf.id];save();
-  botMsg('Больше всего утекает здесь: '+mf.name.toLowerCase()+'. План простой: одна привычка на 7 дней. День = серия, неделя = сезон. Начни вот с этой 👇',function(){showShelf();});}
+  var fs=factors(a).filter(function(f){return f.id!=='energy'&&f.id!=='move';});
+  var mf=fs[0];fs.forEach(function(f){if(f.v<mf.v)mf=f;});
+  var tips=[];
+  if(a.sleep<=2)tips.push('Сон после полуночи — главный слив. Не героику, а полшага: сегодня отбой на 30 минут раньше вчерашнего.');
+  if(S.quiz.doping==='coffee')tips.push('Кофе — ок, но последняя чашка за 8–10 часов до сна. Кофе в 18:00 — это подписка на «уснул в час».');
+  if(S.quiz.doping==='sugar')tips.push('Вместо сладкого на просадке — белковый перекус: орехи, творог, яйцо. Держит ровно, без обвала через час.');
+  if(S.quiz.doping==='energy')tips.push('Энергетик после 16:00 — обмен вечера на ночь. Утром вместо него: 10 минут дневного света в глаза — разгоняет лучше.');
+  if(S.quiz.crash==='afternoon')tips.push('Провал после обеда наполовину снимается прогулкой 10 минут сразу после еды.');
+  if(S.quiz.crash==='morning')tips.push('Тяжёлое утро: свет в глаза в первые полчаса после подъёма и стакан воды до первого кофе.');
+  if(S.quiz.crash==='fog')tips.push('Туман весь день чинится не подвигом, а ритмом: ложись и вставай в одно время, окно ±30 минут.');
+  if(a.stress>=70)tips.push('Новости — один-два захода в день вместо ленты. Фон стихает уже за сутки.');
+  if(!tips.length)tips.push('База у тебя в порядке — просто держи сон в одном ритме: окно ±30 минут важнее его длины.');
+  tips=tips.slice(0,2);
+  botMsg('Теперь по делу. Больше всего у тебя утекает здесь: '+mf.name.toLowerCase()+'.',function(){
+  botMsg('На что обратить внимание: '+tips[0],function(){
+    if(tips[1]){botMsg('И ещё: '+tips[1],endCalc);}else endCalc();});});}
+function endCalc(){
+  botMsg('Хочешь копнуть глубже — спроси меня про сон, кофеин, сахар или стресс. Отвечу коротко и по делу.',function(){
+    chips([{t:'🔄 Пройти заново',fn:restartQuiz}]);});}
 function showShelf(){
   clearChips();
   var used=S.habits.map(function(h){return h.id;});
@@ -403,18 +416,16 @@ function showSummary(){clearChips();hideCancel();
   },700);}
 
 /* шапка */
-$('#hb-check').addEventListener('click',function(){ac();startCheck();});
+$('#hb-again').addEventListener('click',function(){ac();restartQuiz();});
 function showAchv(){clearChips();hideCancel();
   var got=ACHV.filter(function(a){return S.achv[a.id];}),lock=ACHV.filter(function(a){return !S.achv[a.id];});
   var t='Твои ачивки:\n'+(got.length?got.map(function(a){return a.ic+' '+a.t;}).join('\n'):'— пока пусто, всё впереди')+
     (lock.length?('\n\nВпереди:\n'+lock.map(function(a){return '🔒 '+a.t;}).join('\n')):'');
   botMsg(t,offerMain);}
-$('#hb-achv').addEventListener('click',showAchv);
 function showRemind(){clearChips();
   botMsg('Напомню замерить день каждый вечер в '+(S.remind||'21:30')+'. Как удобнее?',function(){
     chips([{t:'⏰ Бот в Telegram',fn:function(){openBot();botMsg('Открыл бота — нажми «Старт». Отключить: /stop.',offerMain);}},
            {t:'📅 Календарь',fn:function(){downloadICS();botMsg('Скинул файл — открой, и календарь будет звать вечером.',offerMain);}}]);});}
-$('#hb-sum').addEventListener('click',function(){ac();showSummary();});
 
 /* ввод */
 $('#send').addEventListener('click',function(){var v=$('#inp').value.trim();
