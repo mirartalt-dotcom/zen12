@@ -1,0 +1,22 @@
+/* ===== Тема NETFLIX: тёмное кино ===== */
+:root{
+  --bg:#0E0D0B; --card:#191712; --soft:#232015;
+  --tx:#F4F1EA; --tx2:#A7A294; --line:#2E2B23;
+  --acc:#A8C96B; --acc-d:#B7D383;
+  --btn:#F4F1EA; --btntx:#14130F; --btnsh:0 12px 34px rgba(0,0,0,.5);
+  --btnr:8px; --r:12px;
+  --thumb:#F4F1EA; --thumbline:#F4F1EA; --canline:#F4F1EA;
+  --leakbg:#2A1B15; --cardsh:0 10px 30px rgba(0,0,0,.45);
+  --veil:linear-gradient(180deg,rgba(8,8,6,.25) 0%,rgba(8,8,6,.05) 35%,rgba(8,8,6,.88) 100%);
+  --dispf:'Cormorant Garamond',Georgia,serif; --dispw:500; --h2w:800;
+}
+h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:clamp(27px,7.4vw,36px)}
+.brandline{color:var(--acc)}
+.eyebrow{color:var(--acc)}
+.leak-card b{color:#E07A5F}
+.msg.me{color:#14130F}
+/* нетфликсовский бейдж топ-10 */
+.nf-badge{display:inline-flex;align-items:center;gap:8px;background:#C0563E;color:#fff;
+  border-radius:6px;padding:6px 12px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;width:max-content}
+.poster{border-radius:8px}
+.poster.sel{box-shadow:0 0 0 3px var(--acc),0 20px 50px rgba(0,0,0,.6)}

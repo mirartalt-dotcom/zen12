@@ -1,0 +1,95 @@
+/* ===== HEADSPACE · тёплое спокойствие =====
+   Референс: Headspace. Мягкие пастельные заливки, крупные округлые формы,
+   дружелюбная жирная типографика, никакой строгости — только доброжелательность. */
+:root{
+  --bg:#FFF6E9; --card:#FFFFFF; --surface2:#FFEBD2;
+  --tx:#2B2118; --tx2:rgba(43,33,24,.62); --tx3:rgba(43,33,24,.42);
+  --line:#F2E0C8; --line-strong:#E6CFAE;
+  --acc:#F5A623; --acc-d:#B26F00; --acc-tint:#FFEDD1; --soft:var(--acc-tint);
+  --acc2:#7BC47F;
+  --sh-1:0 2px 6px rgba(120,84,40,.06);
+  --sh-2:0 6px 20px rgba(120,84,40,.09);
+  --sh-3:0 12px 32px rgba(120,84,40,.14);
+  --cardsh:var(--sh-2); --btnsh:var(--sh-3);
+  --btnr:999px; --r:28px; --r-sm:20px;
+  --btn:#2B2118; --btntx:#FFF6E9;
+  --thumb:#FFFFFF; --thumbline:#2B2118; --canline:#2B2118;
+  --leakbg:#FFE2D6;
+  --veil:linear-gradient(180deg,rgba(43,33,24,.05) 0%,rgba(43,33,24,.55) 100%);
+  --dispf:'Inter',sans-serif; --dispw:800; --h2w:800;
+  --t-fast:140ms; --t-def:240ms; --t-slow:360ms;
+  --e-out:cubic-bezier(.2,.9,.3,1); --e-spring:cubic-bezier(.34,1.5,.5,1);
+}
+body{background:var(--bg)}
+/* мягкое солнечное свечение сверху — фирменная «тёплая» атмосфера */
+.app{background:
+  radial-gradient(120% 60% at 50% -8%,#FFE3B8 0%,rgba(255,227,184,0) 62%),
+  var(--bg)}
+
+h1.display{font-weight:800;letter-spacing:-.028em;line-height:1.06}
+h2{font-weight:800;letter-spacing:-.022em}
+.sub{font-size:16px;line-height:1.6;color:var(--tx2)}
+.eyebrow{letter-spacing:.1em;font-weight:800;font-size:11px;color:var(--acc-d)}
+.brandline{font-family:'Inter',sans-serif;font-style:normal;font-weight:800;letter-spacing:.16em;font-size:12px}
+.bignum,.ring-num,.q-value,.stat-num,.sum-ring-c b{font-variant-numeric:lining-nums tabular-nums}
+.bignum{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.05em}
+
+.btn{border-radius:999px;font-weight:800;font-size:16px;padding:18px 26px;
+  transition:transform var(--t-fast) var(--e-spring),box-shadow var(--t-def) var(--e-out)}
+.btn-pri{background:var(--btn);color:var(--btntx);box-shadow:var(--sh-3)}
+.btn-pri:active{transform:scale(.96)}
+.btn-sec{background:var(--acc-tint);color:var(--acc-d);box-shadow:none}
+.btn-ghost{color:var(--tx2)}
+
+.card{background:var(--card);border:0;border-radius:var(--r);box-shadow:var(--sh-2);padding:20px}
+.card-title{letter-spacing:.08em;font-size:11px;font-weight:800;color:var(--tx3)}
+
+/* ЧАТ: пухлые дружелюбные пузыри */
+.chat-head{background:rgba(255,246,233,.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border:0;box-shadow:0 2px 14px rgba(120,84,40,.06);padding:12px 16px}
+.chat-ava{width:46px;height:46px;border-radius:50%;box-shadow:var(--sh-1);background:var(--surface2)}
+.chat-head-name{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.chat-head-st{font-size:12px;color:var(--acc-d);font-weight:600}
+.chip-ic{background:var(--card);border:0;border-radius:50%;color:var(--tx2);width:42px;height:42px;
+  box-shadow:var(--sh-1);font-size:17px}
+.chip-ic:active{transform:scale(.92);background:var(--acc-tint)}
+
+.chat-scroll{padding:18px 14px 10px;gap:11px}
+.msg{font-size:16px;line-height:1.55;padding:14px 18px;animation:msgIn var(--t-def) var(--e-spring)}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.msg.bot{background:var(--card);border:0;box-shadow:var(--sh-1);border-radius:24px 24px 24px 8px}
+.msg.me{background:var(--acc);color:#40260A;font-weight:700;border-radius:24px 24px 8px 24px;
+  box-shadow:0 4px 14px rgba(245,166,35,.3)}
+.typing{background:var(--card);border:0;box-shadow:var(--sh-1);border-radius:24px 24px 24px 8px;padding:16px 20px}
+.typing i{width:7px;height:7px;background:var(--acc)}
+
+.chips{padding:4px 14px 8px;gap:9px}
+.chip{border:0;background:var(--card);color:var(--tx);border-radius:999px;padding:13px 20px;
+  font-size:15px;font-weight:700;box-shadow:var(--sh-1);min-height:46px}
+.chip:active{transform:scale(.95);background:var(--acc);color:#40260A}
+
+.chat-input{background:rgba(255,246,233,.92);backdrop-filter:blur(18px);border:0;
+  box-shadow:0 -4px 20px rgba(120,84,40,.07)}
+.chat-input input{border:0;background:var(--card);border-radius:999px;padding:15px 20px;font-size:16px;
+  box-shadow:var(--sh-1)}
+.chat-input:focus-within input{box-shadow:0 0 0 3px var(--acc-tint),var(--sh-1)}
+.chat-mic{width:58px;height:58px;border-radius:50%;background:var(--acc);color:#40260A;
+  box-shadow:0 6px 20px rgba(245,166,35,.4)}
+.chat-mic.attract{animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.chat-mic.listening{background:#E8705A;color:#fff;animation:none}
+.chat-send{background:var(--btn);color:var(--btntx);border-radius:50%;box-shadow:var(--sh-2)}
+
+.chat-shelf .poster{border-radius:26px;box-shadow:var(--sh-2)}
+.poster-title{font-weight:800;letter-spacing:-.015em}
+.shelf-swipe{color:var(--tx3)}
+
+/* сводка: круглая и мягкая */
+.summary-msg{border-radius:28px;padding:20px 18px 16px}
+.sum-ring-c b{font-weight:800}
+.sum-eyebrow{color:var(--acc-d)}
+.sum-habit{font-weight:800}
+.stat{background:var(--surface2);border-radius:20px;padding:13px 8px}
+.stat-num{font-weight:800;font-size:25px}
+.stat-lab{color:var(--tx3);letter-spacing:.04em}
+.sum-bars rect{fill:var(--acc)}
