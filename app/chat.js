@@ -128,7 +128,9 @@ function choiceQ(cfg){
     chips(cfg.opts.filter(function(o){return !o.hidden;})
       .map(function(o){return {t:o.t,fn:function(){meMsg(o.t);takeOpt(cfg,o);}};}));
     armChoice(cfg);});}
-function takeOpt(cfg,o){clearChips();o.apply();botMsg(o.react,cfg.next);}
+/* react может быть функцией — тогда реакция подстраивается под предыдущие ответы */
+function takeOpt(cfg,o){clearChips();o.apply();
+  botMsg(typeof o.react==='function'?o.react():o.react,cfg.next);}
 function armChoice(cfg){
   window.DZEN_CURQ=cfg.q;
   expect(function(text){
@@ -198,13 +200,18 @@ function askSugar(){
   choiceQ({q:'Чем обычно спасаешься, когда батарейка садится?',next:askCrash,opts:[
     {t:'Кофе, много кофе',rx:/кофе|капучино|американо|латте|эспрессо|раф/,
      apply:function(){onbAns.sugar=4;onbAns.doping='coffee';},
-     react:'Кофе после 16:00 к полуночи ещё наполовину в крови — вот откуда „уснул в час".'},
+     react:function(){
+       if(onbAns.sleep<=2)return 'Кофе после 16:00 к полуночи ещё наполовину в крови — вот откуда «уснул в час».';
+       if(onbAns.sleep<=4)return 'Кофе после 16:00 к полуночи всё ещё наполовину в крови — глубину сна он подъедает незаметно.';
+       return 'Кофе — ок, раз спишь вовремя. Одно правило: последняя чашка за 8–10 часов до сна.';}},
     {t:'Что-то сладкое',rx:/сладк|шоколад|конфет|печень|торт|булоч|десерт|сахар/,
      apply:function(){onbAns.sugar=1;onbAns.doping='sugar';},
      react:'Сладкое даёт 30 минут подъёма и час обвала. Качели, на которых укачивает.'},
     {t:'Энергетик',rx:/энергетик|энерджи|редбул|ред ?булл|берн|монстр|red ?bull|monster/,
      apply:function(){onbAns.sugar=2;onbAns.doping='energy';},
-     react:'Энергетик — кредит: заряд сейчас, платёж вечером, когда не уснёшь.'},
+     react:function(){
+       if(onbAns.sleep<=2)return 'Энергетик — кредит: заряд сейчас, платёж вечером, когда не уснёшь.';
+       return 'Энергетик — кредит: заряд сейчас, счёт придёт позже. Сахар с кофеином — двойные качели.';}},
     {t:'Терплю на силе воли',rx:/сил[аоеы] ?вол|силе воли|терпл|держусь/,
      apply:function(){onbAns.sugar=5;onbAns.doping='will';},
      react:'Уважаю. Только сила воли — батарейка, а не розетка: её тоже надо заряжать.'},
@@ -220,7 +227,9 @@ function askCrash(){
   choiceQ({q:'В какой момент дня тебя обычно выключает?',next:askStress,opts:[
     {t:'Утром, сразу',rx:/утр|проснул|подъём|подъем|с самого начала/,
      apply:function(){onbAns.crash='morning';},
-     react:'Просадка с утра — почти всегда про сон, а не про характер.'},
+     react:function(){
+       if(onbAns.sleep>=6)return 'Ложишься рано, а утро всё равно тяжёлое? Тогда дело в качестве сна, не в количестве.';
+       return 'Просадка с утра — почти всегда про сон, а не про характер.';}},
     {t:'После обеда',rx:/обед|днём|днем|после еды|полдень| 13 | 14 | 15 /,
      apply:function(){onbAns.crash='afternoon';},
      react:'Провал после обеда — визитная карточка сахарных качелей. Чинится проще, чем кажется.'},
