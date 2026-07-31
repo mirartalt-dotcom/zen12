@@ -135,19 +135,33 @@ function armChoice(cfg){
       if(ordered[i].rx&&ordered[i].rx.test(t)){takeOpt(cfg,ordered[i]);return true;}
     if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|расскажи|объясни|а если|кто ты)/.test(t)){
       botTalk(text);armChoice(cfg);return true;}
-    aiPickOpt(cfg,text,function(o){
-      if(o)takeOpt(cfg,o);
-      else{botMsg('Слышу 🙂 Но для честного расчёта ткни в один из вариантов ниже.');armChoice(cfg);}});
+    aiPickOpt(cfg,text,function(o,say){
+      if(o){
+        /* нейронка поняла ответ: сначала её живая реплика, потом реакция-инсайт и следующий вопрос */
+        if(say)botMsg(say,function(){takeOpt(cfg,o);});
+        else takeOpt(cfg,o);}
+      else{
+        botMsg(say||('Не соображу, куда это записать. Давай проще: '+cfg.q));
+        armChoice(cfg);}});
     return true;});}
-function aiPickOpt(cfg,text,cb){
+function aiPickOpt(cfg,text,cb){ /* cb(option|null, say|null) — разбор + живая реплика одним запросом */
   typing(true);
-  var sys='Человек отвечает на вопрос анкеты: «'+cfg.q+'». Варианты ответа (часть — скрытые смыслы, их нет на кнопках, но они допустимы): '+
+  var sys='Ты — банка DZEN, живой ироничный собеседник в коротком опроснике про ресурс человека. '+
+    'На вопрос «'+cfg.q+'» человек ответил свободной фразой, а не кнопкой. '+
+    'Варианты ответа (часть — скрытые смыслы, их нет на кнопках, но они допустимы): '+
     cfg.opts.map(function(o,i){return i+' — «'+(o.mean||o.t)+'»';}).join('; ')+
-    '. Определи, какому варианту его ответ соответствует ПО СМЫСЛУ, а не по форме (отрицания важны: «не вырубает» = вариант про отсутствие провалов, а не про провал). Верни ТОЛЬКО JSON {"i":номер} или {"i":null}, если ответ не подходит ни к одному.';
+    '. Определи вариант ПО СМЫСЛУ, а не по форме (отрицания важны: «не вырубает» = вариант про отсутствие провалов). '+
+    'Верни ТОЛЬКО JSON {"i":номер или null,"say":"реплика"}. '+
+    'Правила для say (1-2 короткие фразы, на «ты», живо, без нравоучений, максимум один эмодзи): '+
+    'СНАЧАЛА отреагируй на суть его слов — не игнорируй сказанное; '+
+    'если вариант найден — закончи фразой в духе «записываю как …»; '+
+    'если i=null — мягко верни к вопросу, переформулировав его через его же слова.';
   llm(sys,text,function(raw){typing(false);
-    var i=null;
-    if(raw){try{var j=JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0]);if(typeof j.i==='number')i=j.i;}catch(e){}}
-    cb(i!=null&&cfg.opts[i]?cfg.opts[i]:null);});}
+    var i=null,say=null;
+    if(raw){try{var j=JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0]);
+      if(typeof j.i==='number')i=j.i;
+      if(j.say&&typeof j.say==='string')say=j.say.slice(0,220);}catch(e){}}
+    cb(i!=null&&cfg.opts[i]?cfg.opts[i]:null,say);});}
 
 function askSleep(){
   choiceQ({q:'Во сколько ты вчера реально уснул?',next:askSugar,opts:[
