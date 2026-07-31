@@ -9,7 +9,7 @@ document.getElementById('app').innerHTML=
 '<div class="chat-app">'+
 ' <div class="chat-head">'+
 '  <img class="chat-ava" src="'+A+'img/mascot.jpg" alt="">'+
-'  <div><div class="chat-head-name">Банка DZEN</div><div class="chat-head-st" id="head-st">онлайн · следит за энергией</div></div>'+
+'  <div><div class="chat-head-name">Банка DZEN</div><div class="chat-head-st" id="head-st">онлайн · видит тебя насквозь</div></div>'+
 '  <div class="chat-head-btns">'+
 '   <button class="chip-ic" id="hb-again" aria-label="Замерить заново" title="Замерить заново">🔄</button>'+
 '  </div></div>'+
@@ -102,13 +102,10 @@ function num0100(text){
 
 /* ---------- сценарии ---------- */
 function greet(){
-  if(!S.quiz){
-    botMsg('Привет! Я банка DZEN 🥤 Слежу за энергией, пока мир испытывает её на прочность: курс, ставка, новости…',function(){
-    botMsg('Давай сыграем: 4 вопроса — и я угадаю, насколько ты сейчас в ресурсе. Поехали.',function(){askSleep();});});}
-  else{
-    botMsg('С возвращением! Могу замерить заново — это минута. Или просто спроси про энергию, сон, сахар, стресс.',function(){
-      chips([{t:'🔄 Замерить заново',fn:restartQuiz}]);});}
-}
+  /* калькулятор: каждый вход — с чистого листа, без «с возвращением» */
+  S.quiz=null;save();onbAns={};chatReset();
+  botMsg('Привет! Я банка DZEN 🥤 Слежу за твоим ресурсом, пока мир испытывает его на прочность: курс, ставка, новости…',function(){
+  botMsg('Давай сыграем: 4 вопроса — и я угадаю, насколько ты сейчас в ресурсе. Поехали.',function(){askSleep();});});}
 function offerMain(){clearChips();
   chips([{t:'🔄 Замерить заново',fn:restartQuiz}]);}
 function restartQuiz(){clearChips();hideCancel();S.quiz=null;save();onbAns={};chatReset();askSleep();}
