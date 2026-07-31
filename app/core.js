@@ -264,8 +264,8 @@ function userCtx(){
   if(S.quiz)p.push('индекс ресурса '+S.quiz.index+'/100');
   if(S.quiz&&S.quiz.index!=null){
     var typ=typeOf(S.quiz.index,S.quiz.a,S.quiz.doping,S.quiz.crash);
-    var dopw={coffee:'кофе',sugar:'сладкое',energy:'энергетики',will:'сила воли'}[S.quiz.doping];
-    var crw={morning:'с утра',afternoon:'после обеда',evening:'к вечеру',fog:'весь день туман'}[S.quiz.crash];
+    var dopw={coffee:'кофе',sugar:'сладкое',energy:'энергетики',will:'сила воли',none:'ничем — отдых и сон'}[S.quiz.doping];
+    var crw={morning:'с утра',afternoon:'после обеда',evening:'к вечеру',fog:'весь день туман',never:'провалов не бывает'}[S.quiz.crash];
     p.push('типаж: '+typ.name+(dopw?', спасается через: '+dopw:'')+(crw?', провал энергии: '+crw:''));}
   if(S.habits.length)p.push('привычка в фокусе: «'+habit(S.habits[0].id).title+'»'+(S.habits[1]?(' + «'+habit(S.habits[1].id).title+'»'):''));
   if(S.streak)p.push('серия замеров: '+S.streak+' '+plural(S.streak,'день','дня','дней'));

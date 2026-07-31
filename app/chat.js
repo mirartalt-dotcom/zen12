@@ -120,15 +120,19 @@ function askEnergy(done){
    вопрос человека уходит эксперту, анкета не ломается и ждёт дальше */
 function choiceQ(cfg){
   botMsg(cfg.q,function(){
-    chips(cfg.opts.map(function(o){return {t:o.t,fn:function(){meMsg(o.t);takeOpt(cfg,o);}};}));
+    chips(cfg.opts.filter(function(o){return !o.hidden;})
+      .map(function(o){return {t:o.t,fn:function(){meMsg(o.t);takeOpt(cfg,o);}};}));
     armChoice(cfg);});}
 function takeOpt(cfg,o){clearChips();o.apply();botMsg(o.react,cfg.next);}
 function armChoice(cfg){
   expect(function(text){
     var t=' '+wordsToNums(text.toLowerCase())+' ';
     if(cfg.num){var n=num0100(text);if(n!==null){clearChips();cfg.num(n);return true;}}
-    for(var i=0;i<cfg.opts.length;i++)
-      if(cfg.opts[i].rx&&cfg.opts[i].rx.test(t)){takeOpt(cfg,cfg.opts[i]);return true;}
+    /* скрытые смыслы («не вырубает», «не спал») проверяем ПЕРВЫМИ — они конкретнее */
+    var ordered=cfg.opts.filter(function(o){return o.hidden;})
+      .concat(cfg.opts.filter(function(o){return !o.hidden;}));
+    for(var i=0;i<ordered.length;i++)
+      if(ordered[i].rx&&ordered[i].rx.test(t)){takeOpt(cfg,ordered[i]);return true;}
     if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|расскажи|объясни|а если|кто ты)/.test(t)){
       botTalk(text);armChoice(cfg);return true;}
     aiPickOpt(cfg,text,function(o){
@@ -137,9 +141,9 @@ function armChoice(cfg){
     return true;});}
 function aiPickOpt(cfg,text,cb){
   typing(true);
-  var sys='Человек отвечает на вопрос анкеты: «'+cfg.q+'». Варианты ответа: '+
-    cfg.opts.map(function(o,i){return i+' — «'+o.t+'»';}).join('; ')+
-    '. Определи, какому варианту по смыслу соответствует его ответ. Верни ТОЛЬКО JSON {"i":номер} или {"i":null}, если ответ не подходит ни к одному варианту.';
+  var sys='Человек отвечает на вопрос анкеты: «'+cfg.q+'». Варианты ответа (часть — скрытые смыслы, их нет на кнопках, но они допустимы): '+
+    cfg.opts.map(function(o,i){return i+' — «'+(o.mean||o.t)+'»';}).join('; ')+
+    '. Определи, какому варианту его ответ соответствует ПО СМЫСЛУ, а не по форме (отрицания важны: «не вырубает» = вариант про отсутствие провалов, а не про провал). Верни ТОЛЬКО JSON {"i":номер} или {"i":null}, если ответ не подходит ни к одному.';
   llm(sys,text,function(raw){typing(false);
     var i=null;
     if(raw){try{var j=JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0]);if(typeof j.i==='number')i=j.i;}catch(e){}}
@@ -158,7 +162,15 @@ function askSleep(){
      react:'Сон после полуночи отдаёт меньше: главная фаза восстановления — в первую половину ночи.'},
     {t:'Не помню, листал ленту',rx:/лент|листал|телефон|не помню|залип|тикток|инстагр|ютуб/,
      apply:function(){onbAns.sleep=1;onbAns.screen=6;},
-     react:'Классика. Лента ворует не вечер — она ворует завтрашнее утро.'}]});}
+     react:'Классика. Лента ворует не вечер — она ворует завтрашнее утро.'},
+    {hidden:true,t:'Почти не спал',mean:'почти или совсем не спал этой ночью',
+     rx:/не спал|без сна|вообще не усн|не смог усн|бессонниц/,
+     apply:function(){onbAns.sleep=0;},
+     react:'Ночь без сна — это минус сразу по всем статьям. Учитываю с полным весом, держись.'},
+    {hidden:true,t:'По-разному',mean:'по-разному, когда как, точно не помнит',
+     rx:/по ?разному|когда как|по-разному|всегда по/,
+     apply:function(){onbAns.sleep=3;},
+     react:'Ок, беру середину — плюс-минус полночь.'}]});}
 function askSugar(){
   choiceQ({q:'Чем обычно спасаешься, когда батарейка садится?',next:askCrash,opts:[
     {t:'Кофе, много кофе',rx:/кофе|капучино|американо|латте|эспрессо|раф/,
@@ -170,9 +182,17 @@ function askSugar(){
     {t:'Энергетик',rx:/энергетик|энерджи|редбул|ред ?булл|берн|монстр|red ?bull|monster/,
      apply:function(){onbAns.sugar=2;onbAns.doping='energy';},
      react:'Энергетик — кредит: заряд сейчас, платёж вечером, когда не уснёшь.'},
-    {t:'Терплю на силе воли',rx:/сил[аоеы] ?вол|силе воли|терпл|держусь|ничем|никак|не спасаюсь/,
+    {t:'Терплю на силе воли',rx:/сил[аоеы] ?вол|силе воли|терпл|держусь/,
      apply:function(){onbAns.sugar=5;onbAns.doping='will';},
-     react:'Уважаю. Только сила воли — батарейка, а не розетка: её тоже надо заряжать.'}]});}
+     react:'Уважаю. Только сила воли — батарейка, а не розетка: её тоже надо заряжать.'},
+    {hidden:true,t:'Отдых вместо допинга',mean:'спасается сном, отдыхом, прогулкой, спортом, водой',
+     rx:/сплю|поспать|подремать|дремл|прогулк|пройтись|спорт|тренир|заряд|вода|водой|дыхан/,
+     apply:function(){onbAns.sugar=6;onbAns.doping='none';},
+     react:'Отдых вместо стимуляторов — высшая лига. Это сильно меняет расчёт в плюс.'},
+    {hidden:true,t:'Не бывает просадок',mean:'ничем не спасается, просадок не бывает',
+     rx:/ничем|никак|не спасаюсь|не бывает|нет просад|не сажусь|не садится/,
+     apply:function(){onbAns.sugar=6;onbAns.doping='none';},
+     react:'Без допинга вообще? Таких мало. Записал — это плюс к прогнозу.'}]});}
 function askCrash(){
   choiceQ({q:'В какой момент дня тебя обычно выключает?',next:askStress,opts:[
     {t:'Утром, сразу',rx:/утр|проснул|подъём|подъем|с самого начала/,
@@ -184,9 +204,13 @@ function askCrash(){
     {t:'К вечеру',rx:/вечер|к ночи|после работы|в конце дня/,
      apply:function(){onbAns.crash='evening';},
      react:'К вечеру садиться — нормально. Вопрос, насколько глубоко.'},
-    {t:'Весь день в тумане',rx:/туман|весь день|целый день|всегда|постоянно|не выключает/,
+    {t:'Весь день в тумане',rx:/туман|весь день|целый день|постоянно/,
      apply:function(){onbAns.crash='fog';},
-     react:'Туман весь день — значит, утекает сразу в нескольких местах. Сейчас найдём главную дырку.'}]});}
+     react:'Туман весь день — значит, утекает сразу в нескольких местах. Сейчас найдём главную дырку.'},
+    {hidden:true,t:'Не вырубает',mean:'его не вырубает, провалов энергии не бывает',
+     rx:/не выруб|не выключ|нет провал|не бывает|не проседа|всегда бодр|не устаю|редко/,
+     apply:function(){onbAns.crash='never';},
+     react:'Совсем не вырубает? Редкий экземпляр. Учёл — это заметный плюс к расчёту.'}]});}
 function askStress(){
   choiceQ({q:'И про внешний мир: курс, ставка, новости. Насколько тебя штормит, 0–100?',next:onbDone,
    num:function(n){onbAns.stress=n;onbDone();},
@@ -199,11 +223,15 @@ function askStress(){
      react:'Как большинство. Учёл.'},
     {t:'Шторм ~85',rx:/шторм|сильно|очень|жесть|трясёт|трясет|паник|накрывает/,
      apply:function(){onbAns.stress=85;},
-     react:'Держись. Сейчас посчитаю, во что это обходится.'}]});}
+     react:'Держись. Сейчас посчитаю, во что это обходится.'},
+    {hidden:true,t:'Не слежу за новостями',mean:'не смотрит новости, не следит за курсом, его это не касается',
+     rx:/не слежу|не смотрю|не читаю|не интерес|отписал|без новостей/,
+     apply:function(){onbAns.stress=20;},
+     react:'Не смотришь — и правильно делаешь. Записываю почти штиль.'}]});}
 function onbDone(){
   /* банка УГАДЫВАЕТ заряд по косвенным ответам — прямого вопроса про энергию больше нет */
-  var dopV={coffee:55,sugar:25,energy:30,will:70}[onbAns.doping];if(dopV==null)dopV=50;
-  var crV={morning:25,afternoon:45,evening:65,fog:15}[onbAns.crash];if(crV==null)crV=45;
+  var dopV={coffee:55,sugar:25,energy:30,will:70,none:80}[onbAns.doping];if(dopV==null)dopV=50;
+  var crV={morning:25,afternoon:45,evening:65,fog:15,never:85}[onbAns.crash];if(crV==null)crV=45;
   var idx=Math.round(.35*Math.round(onbAns.sleep/7*100)+.25*dopV+.2*crV+.2*(100-onbAns.stress));
   idx=Math.max(5,Math.min(95,idx));
   var a={energy:idx,sleep:onbAns.sleep,sugar:onbAns.sugar,screen:(onbAns.screen||3),move:3,stress:onbAns.stress};
