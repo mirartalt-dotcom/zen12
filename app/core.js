@@ -68,13 +68,15 @@ function energyWord(v){return v<10?'полный ноль':v<25?'еле тлею
 
 /* типаж по итогам квиза: лестница приоритетов, первое совпавшее — выигрывает */
 function typeOf(index,a,doping,crash){
-  if(index>=75)return {emoji:'⚡',name:'Фонтан',line:'Заряд есть. Осталось сделать его системой, а не случайностью.'};
-  if(a.sleep<=2)return {emoji:'🦉',name:'Ночной филин',line:'Живёшь против своих биоритмов: ресурс уходит в ночную смену.'};
-  if(doping=='sugar'||crash=='afternoon')return {emoji:'🍩',name:'Сахарный сёрфер',line:'Катаешься на сахарных волнах: вверх-вниз, а к вечеру — в песок.'};
-  if(doping=='coffee'||doping=='energy')return {emoji:'☕',name:'Кофейный зомби',line:'Держишься на кофеине, а он берёт в долг у твоего сна.'};
-  if(a.stress>=70)return {emoji:'🌊',name:'Штормовой',line:'Ресурс съедает не тело, а новости и фон.'};
-  if(crash=='fog')return {emoji:'🌫',name:'В тумане',line:'Утекает по чуть-чуть отовсюду — будем собирать обратно.'};
-  return {emoji:'🚲',name:'На ровном ходу',line:'База в порядке. Дальше — тонкая настройка.'};}
+  if(index>=75)return {id:'fountain',emoji:'⚡',name:'Фонтан',line:'Заряд есть. Осталось сделать его системой, а не случайностью.'};
+  if(a.sleep<=2)return {id:'owl',emoji:'🦉',name:'Ночной филин',line:'Живёшь против своих биоритмов: ресурс уходит в ночную смену.'};
+  if(doping=='sugar'||crash=='afternoon')return {id:'surfer',emoji:'🍩',name:'Сахарный сёрфер',line:'Катаешься на сахарных волнах: вверх-вниз, а к вечеру — в песок.'};
+  if(doping=='coffee'||doping=='energy')return {id:'zombie',emoji:'☕',name:'Кофейный зомби',line:'Держишься на кофеине, а он берёт в долг у твоего сна.'};
+  if(a.stress>=70)return {id:'storm',emoji:'🌊',name:'Штормовой',line:'Ресурс съедает не тело, а новости и фон.'};
+  if(crash=='fog')return {id:'fog',emoji:'🌫',name:'В тумане',line:'Утекает по чуть-чуть отовсюду — будем собирать обратно.'};
+  return {id:'steady',emoji:'🚲',name:'На ровном ходу',line:'База в порядке. Дальше — тонкая настройка.'};}
+/* арт-постеры типажей (assets/img/type_*.jpg, сгенерированы под бренд: бумага+чернила+лайм) */
+var TYPE_IMG={fountain:'type_fountain',owl:'type_owl',surfer:'type_surfer',zombie:'type_zombie',storm:'type_storm',fog:'type_fog',steady:'type_steady'};
 
 /* замер дня: серия + ачивки. Возвращает {finale, streak, res} */
 function checkInDay(rec){
@@ -146,27 +148,38 @@ function drawShareCard(cv,days,cb){
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paint);
   paint();}
 
-/* карточка типажа (canvas 1080×1350) — по образцу drawShareCard */
+/* карточка типажа (canvas 1080×1350): арт-постер типажа сверху + бумажная плашка с типографикой */
 function drawTypeCard(cv,typ,index,cb){
   var ctx=cv.getContext('2d');
+  var bg=null,ART_H=920;
   function paint(){ctx.clearRect(0,0,1080,1350);
-    if(_abg)ctx.drawImage(_abg,0,0,1080,1350);else{ctx.fillStyle='#F4F1EA';ctx.fillRect(0,0,1080,1350);}
-    ctx.fillStyle='rgba(244,241,234,.55)';ctx.fillRect(70,70,940,1210);
-    ctx.strokeStyle='#2B2A26';ctx.lineWidth=3;ctx.strokeRect(70,70,940,1210);
-    ctx.textAlign='center';ctx.fillStyle='#56732E';ctx.font='650 34px Inter, sans-serif';
-    ctx.fillText('D Z E N',540,180);
-    ctx.font='260px "Cormorant Garamond", Georgia, serif';ctx.fillStyle='#2B2A26';
-    ctx.fillText(typ.emoji,540,420);
-    ctx.font='italic 600 92px "Cormorant Garamond", Georgia, serif';
-    ctx.fillText(typ.name,540,560);
-    ctx.font='300px "Cormorant Garamond", Georgia, serif';ctx.fillText(String(index),540,940);
-    ctx.font='500 40px Inter, sans-serif';ctx.fillStyle='#56732E';
-    ctx.fillText('индекс ресурса',540,1010);
-    ctx.fillStyle='#6E6A5F';ctx.font='400 32px Inter, sans-serif';
-    ctx.fillText('замерь свой ресурс · dzen',540,1200);
+    ctx.fillStyle='#F4F1EA';ctx.fillRect(0,0,1080,1350);
+    if(bg){ /* cover с запасом 8% — срезает поля арта */
+      var s=Math.max(1080/bg.width,ART_H/bg.height)*1.08;
+      var w=bg.width*s,h=bg.height*s;
+      ctx.save();ctx.beginPath();ctx.rect(0,0,1080,ART_H);ctx.clip();
+      ctx.drawImage(bg,(1080-w)/2,(ART_H-h)/2,w,h);ctx.restore();}
+    /* лаймовая линейка между артом и плашкой */
+    ctx.fillStyle='#A8C96B';ctx.fillRect(0,ART_H,1080,7);
+    /* типографика на бумаге */
+    ctx.textAlign='center';
+    ctx.fillStyle='#56732E';ctx.font='650 30px Inter, sans-serif';
+    ctx.fillText('D Z E N   ·   М О Й   Т И П А Ж',540,1010);
+    ctx.fillStyle='#2B2A26';
+    ctx.font='italic 600 100px "Cormorant Garamond", Georgia, serif';
+    var words=typ.name.split(' '),line='',lines=[];
+    words.forEach(function(w){var t2=line?line+' '+w:w;
+      if(ctx.measureText(t2).width>960&&line){lines.push(line);line=w;}else line=t2;});
+    lines.push(line);
+    var ny=lines.length>1?1090:1128;
+    lines.forEach(function(l,i){ctx.fillText(l,540,ny+i*96);});
+    ctx.font='500 46px Inter, sans-serif';
+    ctx.fillText(typ.emoji+'  ресурс '+index+' из 100',540,lines.length>1?1262:1230);
+    ctx.fillStyle='#6E6A5F';ctx.font='400 27px Inter, sans-serif';
+    ctx.fillText('замерь свой ресурс · dzen',540,1315);
     if(cb)cb();}
-  if(!_abg){var im=new Image();im.src=window.DZEN_ASSETS+'img/frame_achieve.jpg';
-    im.onload=function(){_abg=im;paint();};im.onerror=paint;}
+  var im=new Image();im.src=window.DZEN_ASSETS+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
+  im.onload=function(){bg=im;paint();};im.onerror=paint;
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paint);
   paint();}
 function shareCard(cv,text){

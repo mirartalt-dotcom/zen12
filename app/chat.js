@@ -241,16 +241,21 @@ function showType(){
 /* карточка типажа — по образцу finale(): canvas → картинка в сообщении бота → чипы → продолжение потока */
 function showTypeCard(typ){
   var cv=document.createElement('canvas');cv.width=1080;cv.height=1350;
+  /* сначала грузим арт-постер (дальше он берётся из кэша), потом рисуем и показываем */
+  var started=false;
+  function go(){if(started)return;started=true;
   drawTypeCard(cv,typ,S.quiz.index,null);
   setTimeout(function(){
     var d=document.createElement('div');d.className='msg bot';
-    var img=new Image();img.className='msg-img';img.src=cv.toDataURL('image/png');
+    var img=new Image();img.className='msg-img';img.src=cv.toDataURL('image/jpeg',.92);
     d.appendChild(img);SCROLL.appendChild(d);down();
     chips([{t:'📤 Поделиться',fn:function(){shareCard(cv,'Мой типаж: '+typ.emoji+' '+typ.name+'. Индекс ресурса '+S.quiz.index+' из 100. Замерь свой:');afterTypeCard();}},
            {t:'💾 Скачать',fn:function(){saveCard(cv);afterTypeCard();}},
            {t:'Дальше',fn:function(){afterTypeCard();}}]);
     expect(function(text){afterTypeCard();return true;});
   },600);}
+  var pre=new Image();pre.src=A+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
+  pre.onload=go;pre.onerror=go;setTimeout(go,3000);}
 function afterTypeCard(){
   /* личный разбор: главная утечка + 2 точных совета по ответам, без «вернись завтра» */
   var a=S.quiz.a;
