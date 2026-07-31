@@ -29,12 +29,17 @@ function down(){
   setTimeout(function(){SCROLL.scrollTop=SCROLL.scrollHeight;},320);
 }
 function el(html,cls){var d=document.createElement('div');if(cls)d.className=cls;d.innerHTML=html;SCROLL.appendChild(d);down();return d;}
-function meMsg(t){el(t,'msg me');}
+/* единая короткая память диалога: ВСЁ, что видят оба (вопросы, кнопки, реплики) — для нейронок */
+var DLOG=[];
+function dlogAdd(who,t){DLOG.push(who+': '+t);if(DLOG.length>16)DLOG=DLOG.slice(-16);}
+window.DZEN_DLOG=function(){return DLOG.slice(-12).join('\n');};
+window.DZEN_CURQ=null; /* текущий вопрос анкеты, если опрос идёт */
+function meMsg(t){el(t,'msg me');dlogAdd('человек',t);}
 var typingEl=null;
 function typing(on){if(on&&!typingEl){typingEl=el('<i></i><i></i><i></i>','typing');}
   else if(!on&&typingEl){typingEl.remove();typingEl=null;}}
 function botMsg(t,cb){typing(true);
-  setTimeout(function(){typing(false);el(t,'msg bot');if(cb)cb();},450+Math.min(900,t.length*6));}
+  setTimeout(function(){typing(false);el(t,'msg bot');dlogAdd('банка',t);if(cb)cb();},450+Math.min(900,t.length*6));}
 function clearChips(){$$('.chips,.chat-shelf,.msg-slider').forEach(function(c){c.remove();});}
 function chips(list){ // [{t, fn}]
   var c=document.createElement('div');c.className='chips';
@@ -125,6 +130,7 @@ function choiceQ(cfg){
     armChoice(cfg);});}
 function takeOpt(cfg,o){clearChips();o.apply();botMsg(o.react,cfg.next);}
 function armChoice(cfg){
+  window.DZEN_CURQ=cfg.q;
   expect(function(text){
     var t=' '+wordsToNums(text.toLowerCase())+' ';
     if(cfg.num){var n=num0100(text);if(n!==null){clearChips();cfg.num(n);return true;}}
@@ -155,9 +161,10 @@ function aiPickOpt(cfg,text,cb){ /* cb(option|null, say|null) — разбор +
     '. Определи вариант ПО СМЫСЛУ, а не по форме (отрицания важны: «не вырубает» = вариант про отсутствие провалов). '+
     'Верни ТОЛЬКО JSON {"i":номер или null,"say":"реплика"}. '+
     'Правила для say (1-2 короткие фразы, на «ты», живо, без нравоучений, максимум один эмодзи): '+
-    'СНАЧАЛА отреагируй на суть его слов — не игнорируй сказанное; '+
+    'СНАЧАЛА отреагируй на суть его слов и обыграй конкретные детали (место, время, обстоятельства) — не игнорируй сказанное; '+
     'если вариант найден — закончи фразой в духе «записываю как …»; '+
-    'если i=null — мягко верни к вопросу, переформулировав его через его же слова.';
+    'если i=null — мягко верни к вопросу, переформулировав его через его же слова.'+
+    (window.DZEN_DLOG&&window.DZEN_DLOG()?('\nПоследние реплики диалога (учитывай контекст):\n'+window.DZEN_DLOG()):'');
   llm(sys,text,function(raw){typing(false);
     var i=null,say=null;
     if(raw){try{var j=JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0]);
@@ -245,6 +252,7 @@ function askStress(){
      apply:function(){onbAns.stress=20;},
      react:'Не смотришь — и правильно делаешь. Записываю почти штиль.'}]});}
 function onbDone(){
+  window.DZEN_CURQ=null;
   /* банка УГАДЫВАЕТ заряд по косвенным ответам — прямого вопроса про энергию больше нет */
   var dopV={coffee:55,sugar:25,energy:30,will:70,none:80}[onbAns.doping];if(dopV==null)dopV=50;
   var crV={morning:25,afternoon:45,evening:65,fog:15,never:85}[onbAns.crash];if(crV==null)crV=45;
