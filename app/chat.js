@@ -233,6 +233,8 @@ function onbDone(){
   var dopV={coffee:55,sugar:25,energy:30,will:70,none:80}[onbAns.doping];if(dopV==null)dopV=50;
   var crV={morning:25,afternoon:45,evening:65,fog:15,never:85}[onbAns.crash];if(crV==null)crV=45;
   var idx=Math.round(.35*Math.round(onbAns.sleep/7*100)+.25*dopV+.2*crV+.2*(100-onbAns.stress));
+  /* растяжка от середины: средневзвешенное сжимает разброс, возвращаем контраст ответам */
+  idx=Math.round(50+(idx-50)*1.35);
   idx=Math.max(5,Math.min(95,idx));
   var a={energy:idx,sleep:onbAns.sleep,sugar:onbAns.sugar,screen:(onbAns.screen||3),move:3,stress:onbAns.stress};
   S.quiz={a:a,index:idx,date:todayStr(),doping:onbAns.doping,crash:onbAns.crash};save();

@@ -66,15 +66,24 @@ function verdict(i){
  return ['Фонтан. Поделись рецептом','Такой заряд надо не тратить, а инвестировать.'];}
 function energyWord(v){return v<10?'полный ноль':v<25?'еле тлею':v<45?'на остатках':v<65?'рабочий режим':v<85?'хорошо заряжен':'фонтан энергии';}
 
-/* типаж по итогам квиза: лестница приоритетов, первое совпавшее — выигрывает */
+/* типаж по итогам квиза: побеждает САМАЯ СИЛЬНАЯ проблема (счёт), а не первая в списке —
+   иначе «уснул после полуночи» делал филином всех подряд */
 function typeOf(index,a,doping,crash){
   if(index>=75)return {id:'fountain',emoji:'⚡',name:'Фонтан',line:'Заряд есть. Осталось сделать его системой, а не случайностью.'};
-  if(a.sleep<=2)return {id:'owl',emoji:'🦉',name:'Ночной филин',line:'Живёшь против своих биоритмов: ресурс уходит в ночную смену.'};
-  if(doping=='sugar'||crash=='afternoon')return {id:'surfer',emoji:'🍩',name:'Сахарный сёрфер',line:'Катаешься на сахарных волнах: вверх-вниз, а к вечеру — в песок.'};
-  if(doping=='coffee'||doping=='energy')return {id:'zombie',emoji:'☕',name:'Кофейный зомби',line:'Держишься на кофеине, а он берёт в долг у твоего сна.'};
-  if(a.stress>=70)return {id:'storm',emoji:'🌊',name:'Штормовой',line:'Ресурс съедает не тело, а новости и фон.'};
-  if(crash=='fog')return {id:'fog',emoji:'🌫',name:'В тумане',line:'Утекает по чуть-чуть отовсюду — будем собирать обратно.'};
-  return {id:'steady',emoji:'🚲',name:'На ровном ходу',line:'База в порядке. Дальше — тонкая настройка.'};}
+  var cand=[
+   {sc:a.sleep<=0?100:a.sleep==1?85:a.sleep==2?60:a.sleep==3?35:0,
+    t:{id:'owl',emoji:'🦉',name:'Ночной филин',line:'Живёшь против своих биоритмов: ресурс уходит в ночную смену.'}},
+   {sc:(doping=='sugar'?70:0)+(crash=='afternoon'?25:0),
+    t:{id:'surfer',emoji:'🍩',name:'Сахарный сёрфер',line:'Катаешься на сахарных волнах: вверх-вниз, а к вечеру — в песок.'}},
+   {sc:doping=='energy'?72:doping=='coffee'?68:0,
+    t:{id:'zombie',emoji:'☕',name:'Кофейный зомби',line:'Держишься на кофеине, а он берёт в долг у твоего сна.'}},
+   {sc:a.stress>=85?90:a.stress>=70?72:a.stress>=50?35:0,
+    t:{id:'storm',emoji:'🌊',name:'Штормовой',line:'Ресурс съедает не тело, а новости и фон.'}},
+   {sc:crash=='fog'?75:0,
+    t:{id:'fog',emoji:'🌫',name:'В тумане',line:'Утекает по чуть-чуть отовсюду — будем собирать обратно.'}}];
+  var best=cand[0];cand.forEach(function(x){if(x.sc>best.sc)best=x;});
+  if(best.sc<30)return {id:'steady',emoji:'🚲',name:'На ровном ходу',line:'База в порядке. Дальше — тонкая настройка.'};
+  return best.t;}
 /* арт-постеры типажей (assets/img/type_*.jpg, сгенерированы под бренд: бумага+чернила+лайм) */
 var TYPE_IMG={fountain:'type_fountain',owl:'type_owl',surfer:'type_surfer',zombie:'type_zombie',storm:'type_storm',fog:'type_fog',steady:'type_steady'};
 
