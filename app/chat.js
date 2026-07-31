@@ -128,13 +128,15 @@ function armChoice(cfg){
   expect(function(text){
     var t=' '+wordsToNums(text.toLowerCase())+' ';
     if(cfg.num){var n=num0100(text);if(n!==null){clearChips();cfg.num(n);return true;}}
-    /* скрытые смыслы («не вырубает», «не спал») проверяем ПЕРВЫМИ — они конкретнее */
-    var ordered=cfg.opts.filter(function(o){return o.hidden;})
-      .concat(cfg.opts.filter(function(o){return !o.hidden;}));
-    for(var i=0;i<ordered.length;i++)
-      if(ordered[i].rx&&ordered[i].rx.test(t)){takeOpt(cfg,ordered[i]);return true;}
-    if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|расскажи|объясни|а если|кто ты)/.test(t)){
+    /* настоящий вопрос человека — ПЕРВЫМ: иначе «почему после сахара рубит?» засчитается как ответ «сладкое» */
+    if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|как связан|расскажи|объясни|а если|кто ты|посоветуй|помоги)/.test(t)){
       botTalk(text);armChoice(cfg);return true;}
+    /* ключевые слова — только для коротких реплик; длинные фразы разбирает нейронка целиком */
+    if(text.trim().split(/\s+/).length<7){
+      var ordered=cfg.opts.filter(function(o){return o.hidden;})
+        .concat(cfg.opts.filter(function(o){return !o.hidden;}));
+      for(var i=0;i<ordered.length;i++)
+        if(ordered[i].rx&&ordered[i].rx.test(t)){takeOpt(cfg,ordered[i]);return true;}}
     aiPickOpt(cfg,text,function(o,say){
       if(o){
         /* нейронка поняла ответ: сначала её живая реплика, потом реакция-инсайт и следующий вопрос */
