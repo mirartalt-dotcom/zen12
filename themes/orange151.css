@@ -1,0 +1,12 @@
+/* ===== DZEN · ОРАНЖЕВАЯ ТЕМА — Pantone 151 U =====
+   Надстройка поверх светлой (drinkit.css): подключать ПОСЛЕ неё.
+   Меняются только токены акцента и тёплые нейтрали — вся механика и типографика общие. */
+:root{
+  /* нейтрали — чуть теплее, в сторону персика */
+  --bg:#FBF1E6; --card:#FFFDF8; --surface2:#F7EAD9;
+  --line:#F0DDC6; --line-strong:#E3C9A6;
+  /* акцент — Pantone 151 U */
+  --acc:#FF8A3D; --acc-d:#B04E0B; --acc-tint:#FFE9D5; --acc-deep:#8F3F06;
+  --soft:var(--acc-tint);
+  --leakbg:#FFE3CE;
+}
