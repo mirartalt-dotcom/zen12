@@ -154,11 +154,12 @@ function drawTypeCard(cv,typ,index,cb){
   var bg=null,ART_H=920;
   function paint(){ctx.clearRect(0,0,1080,1350);
     ctx.fillStyle='#F4F1EA';ctx.fillRect(0,0,1080,1350);
-    if(bg){ /* cover с запасом 8% — срезает поля арта */
-      var s=Math.max(1080/bg.width,ART_H/bg.height)*1.08;
+    if(bg){ /* cover; вертикальную обрезку целим по композиции конкретного арта */
+      var s=Math.max(1080/bg.width,ART_H/bg.height)*1.02;
       var w=bg.width*s,h=bg.height*s;
+      var f={owl:0,surfer:0,storm:0,fog:.25,steady:.25,zombie:.35,fountain:1}[typ.id];if(f==null)f=.5;
       ctx.save();ctx.beginPath();ctx.rect(0,0,1080,ART_H);ctx.clip();
-      ctx.drawImage(bg,(1080-w)/2,(ART_H-h)/2,w,h);ctx.restore();}
+      ctx.drawImage(bg,(1080-w)/2,(ART_H-h)*f,w,h);ctx.restore();}
     /* лаймовая линейка между артом и плашкой */
     ctx.fillStyle='#A8C96B';ctx.fillRect(0,ART_H,1080,7);
     /* типографика на бумаге */

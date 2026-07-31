@@ -254,8 +254,14 @@ function showTypeCard(typ){
            {t:'Дальше',fn:function(){afterTypeCard();}}]);
     expect(function(text){afterTypeCard();return true;});
   },600);}
+  /* ждём и арт, и фирменный шрифт (он нигде больше не используется — надо догрузить явно) */
+  var ready=0;function step(){ready++;if(ready>=2)go();}
   var pre=new Image();pre.src=A+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
-  pre.onload=go;pre.onerror=go;setTimeout(go,3000);}
+  pre.onload=step;pre.onerror=step;
+  if(document.fonts&&document.fonts.load)
+    document.fonts.load('italic 600 100px "Cormorant Garamond"').then(step,step);
+  else step();
+  setTimeout(go,3000);}
 function afterTypeCard(){
   /* личный разбор: главная утечка + 2 точных совета по ответам, без «вернись завтра» */
   var a=S.quiz.a;
