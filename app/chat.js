@@ -115,50 +115,91 @@ var onbAns={};
 function askEnergy(done){
   sliderMsg(function(v){meMsg('Энергия: '+v);done(v);});
   expect(function(text){var n=num0100(text);if(n===null)return false;clearChips();done(n);return true;});}
+/* ---- универсальный вопрос с кнопками: понимает кнопки, текст и голос ----
+   разбор ответа: число (если cfg.num) → ключевые слова → нейронка-классификатор;
+   вопрос человека уходит эксперту, анкета не ломается и ждёт дальше */
+function choiceQ(cfg){
+  botMsg(cfg.q,function(){
+    chips(cfg.opts.map(function(o){return {t:o.t,fn:function(){meMsg(o.t);takeOpt(cfg,o);}};}));
+    armChoice(cfg);});}
+function takeOpt(cfg,o){clearChips();o.apply();botMsg(o.react,cfg.next);}
+function armChoice(cfg){
+  expect(function(text){
+    var t=' '+wordsToNums(text.toLowerCase())+' ';
+    if(cfg.num){var n=num0100(text);if(n!==null){clearChips();cfg.num(n);return true;}}
+    for(var i=0;i<cfg.opts.length;i++)
+      if(cfg.opts[i].rx&&cfg.opts[i].rx.test(t)){takeOpt(cfg,cfg.opts[i]);return true;}
+    if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|расскажи|объясни|а если|кто ты)/.test(t)){
+      botTalk(text);armChoice(cfg);return true;}
+    aiPickOpt(cfg,text,function(o){
+      if(o)takeOpt(cfg,o);
+      else{botMsg('Слышу 🙂 Но для честного расчёта ткни в один из вариантов ниже.');armChoice(cfg);}});
+    return true;});}
+function aiPickOpt(cfg,text,cb){
+  typing(true);
+  var sys='Человек отвечает на вопрос анкеты: «'+cfg.q+'». Варианты ответа: '+
+    cfg.opts.map(function(o,i){return i+' — «'+o.t+'»';}).join('; ')+
+    '. Определи, какому варианту по смыслу соответствует его ответ. Верни ТОЛЬКО JSON {"i":номер} или {"i":null}, если ответ не подходит ни к одному варианту.';
+  llm(sys,text,function(raw){typing(false);
+    var i=null;
+    if(raw){try{var j=JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0]);if(typeof j.i==='number')i=j.i;}catch(e){}}
+    cb(i!=null&&cfg.opts[i]?cfg.opts[i]:null);});}
+
 function askSleep(){
-  botMsg('Во сколько ты вчера реально уснул?',function(){
-    var opts=[
-      {t:'До 23',fn:function(){meMsg('До 23');onbAns.sleep=6;
-        botMsg('Редкий зверь. Самый жирный кусок восстановления — до полуночи, и он у тебя есть.',askSugar);}},
-      {t:'23–00',fn:function(){meMsg('23–00');onbAns.sleep=4;
-        botMsg('Почти идеально. Сдвинешь на полчаса раньше — утро станет другим.',askSugar);}},
-      {t:'После полуночи',fn:function(){meMsg('После полуночи');onbAns.sleep=2;
-        botMsg('Сон после полуночи отдаёт меньше: главная фаза восстановления — в первую половину ночи.',askSugar);}},
-      {t:'Не помню, листал ленту',fn:function(){meMsg('Не помню, листал ленту');onbAns.sleep=1;onbAns.screen=6;
-        botMsg('Классика. Лента ворует не вечер — она ворует завтрашнее утро.',askSugar);}}
-    ];
-    chips(opts);});}
+  choiceQ({q:'Во сколько ты вчера реально уснул?',next:askSugar,opts:[
+    {t:'До 23',rx:/до ?23|до ?11|десят|одиннадцат| 21 | 22 |рано/,
+     apply:function(){onbAns.sleep=6;},
+     react:'Редкий зверь. Самый жирный кусок восстановления — до полуночи, и он у тебя есть.'},
+    {t:'23–00',rx:/ 23|двенадцат|к полуночи|около полуночи|перед полуночью| 12 /,
+     apply:function(){onbAns.sleep=4;},
+     react:'Почти идеально. Сдвинешь на полчаса раньше — утро станет другим.'},
+    {t:'После полуночи',rx:/полуноч|час ноч| в час | в два | в три |поздно|под утро| ноч/,
+     apply:function(){onbAns.sleep=2;},
+     react:'Сон после полуночи отдаёт меньше: главная фаза восстановления — в первую половину ночи.'},
+    {t:'Не помню, листал ленту',rx:/лент|листал|телефон|не помню|залип|тикток|инстагр|ютуб/,
+     apply:function(){onbAns.sleep=1;onbAns.screen=6;},
+     react:'Классика. Лента ворует не вечер — она ворует завтрашнее утро.'}]});}
 function askSugar(){
-  botMsg('Чем обычно спасаешься, когда батарейка садится?',function(){
-    var opts=[
-      {t:'Кофе, много кофе',fn:function(){meMsg('Кофе, много кофе');onbAns.sugar=4;onbAns.doping='coffee';
-        botMsg('Кофе после 16:00 к полуночи ещё наполовину в крови — вот откуда „уснул в час".',askCrash);}},
-      {t:'Что-то сладкое',fn:function(){meMsg('Что-то сладкое');onbAns.sugar=1;onbAns.doping='sugar';
-        botMsg('Сладкое даёт 30 минут подъёма и час обвала. Качели, на которых укачивает.',askCrash);}},
-      {t:'Энергетик',fn:function(){meMsg('Энергетик');onbAns.sugar=2;onbAns.doping='energy';
-        botMsg('Энергетик — кредит: заряд сейчас, платёж вечером, когда не уснёшь.',askCrash);}},
-      {t:'Терплю на силе воли',fn:function(){meMsg('Терплю на силе воли');onbAns.sugar=5;onbAns.doping='will';
-        botMsg('Уважаю. Только сила воли — батарейка, а не розетка: её тоже надо заряжать.',askCrash);}}
-    ];
-    chips(opts);});}
+  choiceQ({q:'Чем обычно спасаешься, когда батарейка садится?',next:askCrash,opts:[
+    {t:'Кофе, много кофе',rx:/кофе|капучино|американо|латте|эспрессо|раф/,
+     apply:function(){onbAns.sugar=4;onbAns.doping='coffee';},
+     react:'Кофе после 16:00 к полуночи ещё наполовину в крови — вот откуда „уснул в час".'},
+    {t:'Что-то сладкое',rx:/сладк|шоколад|конфет|печень|торт|булоч|десерт|сахар/,
+     apply:function(){onbAns.sugar=1;onbAns.doping='sugar';},
+     react:'Сладкое даёт 30 минут подъёма и час обвала. Качели, на которых укачивает.'},
+    {t:'Энергетик',rx:/энергетик|энерджи|редбул|ред ?булл|берн|монстр|red ?bull|monster/,
+     apply:function(){onbAns.sugar=2;onbAns.doping='energy';},
+     react:'Энергетик — кредит: заряд сейчас, платёж вечером, когда не уснёшь.'},
+    {t:'Терплю на силе воли',rx:/сил[аоеы] ?вол|силе воли|терпл|держусь|ничем|никак|не спасаюсь/,
+     apply:function(){onbAns.sugar=5;onbAns.doping='will';},
+     react:'Уважаю. Только сила воли — батарейка, а не розетка: её тоже надо заряжать.'}]});}
 function askCrash(){
-  botMsg('В какой момент дня тебя обычно выключает?',function(){
-    var opts=[
-      {t:'Утром, сразу',fn:function(){meMsg('Утром, сразу');onbAns.crash='morning';
-        botMsg('Просадка с утра — почти всегда про сон, а не про характер.',askStress);}},
-      {t:'После обеда',fn:function(){meMsg('После обеда');onbAns.crash='afternoon';
-        botMsg('Провал после обеда — визитная карточка сахарных качелей. Чинится проще, чем кажется.',askStress);}},
-      {t:'К вечеру',fn:function(){meMsg('К вечеру');onbAns.crash='evening';
-        botMsg('К вечеру садиться — нормально. Вопрос, насколько глубоко.',askStress);}},
-      {t:'Весь день в тумане',fn:function(){meMsg('Весь день в тумане');onbAns.crash='fog';
-        botMsg('Туман весь день — значит, утекает сразу в нескольких местах. Сейчас найдём главную дырку.',askStress);}}
-    ];
-    chips(opts);});}
+  choiceQ({q:'В какой момент дня тебя обычно выключает?',next:askStress,opts:[
+    {t:'Утром, сразу',rx:/утр|проснул|подъём|подъем|с самого начала/,
+     apply:function(){onbAns.crash='morning';},
+     react:'Просадка с утра — почти всегда про сон, а не про характер.'},
+    {t:'После обеда',rx:/обед|днём|днем|после еды|полдень| 13 | 14 | 15 /,
+     apply:function(){onbAns.crash='afternoon';},
+     react:'Провал после обеда — визитная карточка сахарных качелей. Чинится проще, чем кажется.'},
+    {t:'К вечеру',rx:/вечер|к ночи|после работы|в конце дня/,
+     apply:function(){onbAns.crash='evening';},
+     react:'К вечеру садиться — нормально. Вопрос, насколько глубоко.'},
+    {t:'Весь день в тумане',rx:/туман|весь день|целый день|всегда|постоянно|не выключает/,
+     apply:function(){onbAns.crash='fog';},
+     react:'Туман весь день — значит, утекает сразу в нескольких местах. Сейчас найдём главную дырку.'}]});}
 function askStress(){
-  botMsg('И про внешний мир: курс, ставка, новости. Насколько тебя штормит, 0–100?',function(){
-    var m={'Штиль ~15':15,'Качает ~50':50,'Шторм ~85':85};
-    chips(Object.keys(m).map(function(k){return {t:k,fn:function(){meMsg(k);onbAns.stress=m[k];onbDone();}};}));
-    expect(function(t){var n=num0100(t);if(n===null)return false;onbAns.stress=n;onbDone();return true;});});}
+  choiceQ({q:'И про внешний мир: курс, ставка, новости. Насколько тебя штормит, 0–100?',next:onbDone,
+   num:function(n){onbAns.stress=n;onbDone();},
+   opts:[
+    {t:'Штиль ~15',rx:/штиль|спокой|не шторм|не трогает|ровно|пофиг/,
+     apply:function(){onbAns.stress=15;},
+     react:'Штиль — роскошь по нынешним временам. Беру в расчёт.'},
+    {t:'Качает ~50',rx:/качает|средне|так себе|бывает|иногда|местами/,
+     apply:function(){onbAns.stress=50;},
+     react:'Как большинство. Учёл.'},
+    {t:'Шторм ~85',rx:/шторм|сильно|очень|жесть|трясёт|трясет|паник|накрывает/,
+     apply:function(){onbAns.stress=85;},
+     react:'Держись. Сейчас посчитаю, во что это обходится.'}]});}
 function onbDone(){
   /* банка УГАДЫВАЕТ заряд по косвенным ответам — прямого вопроса про энергию больше нет */
   var dopV={coffee:55,sugar:25,energy:30,will:70}[onbAns.doping];if(dopV==null)dopV=50;
@@ -178,7 +219,20 @@ function onbDone(){
         botMsg('Принял, поднимаю до '+S.quiz.index+'. Люблю оптимистов.',showType);}},
       {t:'Пониже',fn:function(){meMsg('Пониже');bumpIndex(-10);
         botMsg('Честно. Опускаю до '+S.quiz.index+' — честный замер полезнее красивого.',showType);}}]);
-    expect(function(text){showType();return true;});});});});}
+    /* свободный ответ тоже понимаем: «в точку», «у меня выше/ниже», «у меня 70» */
+    expect(function(text){
+      var t=' '+wordsToNums(text.toLowerCase())+' ';
+      var n=num0100(text);
+      clearChips();
+      if(n!==null){S.quiz.index=Math.max(5,Math.min(95,n));S.quiz.a.energy=S.quiz.index;save();
+        botMsg('Принял, записываю '+S.quiz.index+'. Самозамер — тоже замер.',showType);}
+      else if(/точку|точно|угадал|похоже|прав | да /.test(t)){botMsg('Я же банка. Мне сверху видно 😌',showType);}
+      else if(/выше|больше|получше|повыше|бодрее|лучше/.test(t)){bumpIndex(10);
+        botMsg('Принял, поднимаю до '+S.quiz.index+'. Люблю оптимистов.',showType);}
+      else if(/ниже|меньше|хуже|пониже|устал/.test(t)){bumpIndex(-10);
+        botMsg('Честно. Опускаю до '+S.quiz.index+' — честный замер полезнее красивого.',showType);}
+      else showType();
+      return true;});});});});}
 function bumpIndex(d){S.quiz.index=Math.max(5,Math.min(95,S.quiz.index+d));S.quiz.a.energy=S.quiz.index;save();}
 function showType(){
   clearChips();
