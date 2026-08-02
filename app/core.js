@@ -245,11 +245,13 @@ function llm(sys,user,cb){ /* user: строка или массив [{role,cont
       .then(function(r){return r.json();}).then(function(d){cb(d.content&&d.content[0]?d.content[0].text:null);})
       .catch(function(){cb(null);});}
   else if(c.provider==='groq'&&c.key){
-    var models=['meta-llama/llama-4-maverick-17b-128e-instruct','llama-3.3-70b-versatile'];
+    var models=['openai/gpt-oss-120b','llama-3.3-70b-versatile'];
     (function tryModel(mi){
       if(mi>=models.length){cb(null);return;}
+      var body={model:models[mi],temperature:0.5,max_tokens:600,messages:[{role:'system',content:sys}].concat(msgs)};
+      if(models[mi].indexOf('gpt-oss')>=0){body.max_tokens=900;body.reasoning_effort='low';}
       fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},
-        body:JSON.stringify({model:models[mi],temperature:0.5,max_tokens:600,messages:[{role:'system',content:sys}].concat(msgs)})})
+        body:JSON.stringify(body)})
         .then(function(r){return r.json();})
         .then(function(d){var t=d.choices&&d.choices[0]?d.choices[0].message.content:null;
           if(t)cb(t);else tryModel(mi+1);})
