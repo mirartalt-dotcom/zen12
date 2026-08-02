@@ -245,15 +245,17 @@ function llm(sys,user,cb){ /* user: строка или массив [{role,cont
       .then(function(r){return r.json();}).then(function(d){cb(d.content&&d.content[0]?d.content[0].text:null);})
       .catch(function(){cb(null);});}
   else if(c.provider==='groq'&&c.key){
-    var models=['openai/gpt-oss-120b','llama-3.3-70b-versatile'];
+    var models=['openai/gpt-oss-120b','qwen/qwen3.6-27b','llama-3.3-70b-versatile','openai/gpt-oss-20b'];
     (function tryModel(mi){
       if(mi>=models.length){cb(null);return;}
       var body={model:models[mi],temperature:0.5,max_tokens:600,messages:[{role:'system',content:sys}].concat(msgs)};
       if(models[mi].indexOf('gpt-oss')>=0){body.max_tokens=900;body.reasoning_effort='low';}
+      if(models[mi].indexOf('qwen')>=0){body.max_tokens=2500;body.reasoning_format='hidden';}
       fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},
         body:JSON.stringify(body)})
         .then(function(r){return r.json();})
         .then(function(d){var t=d.choices&&d.choices[0]?d.choices[0].message.content:null;
+          if(t)t=t.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
           if(t)cb(t);else tryModel(mi+1);})
         .catch(function(){tryModel(mi+1);});
     })(0);}
