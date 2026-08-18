@@ -157,10 +157,13 @@ function drawShareCard(cv,days,cb){
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paint);
   paint();}
 
-/* карточка типажа (canvas 1080×1350): арт-постер типажа сверху + бумажная плашка с типографикой */
-function drawTypeCard(cv,typ,index,cb){
+/* карточка типажа (canvas 1080×1350): арт-постер типажа сверху + бумажная плашка с типографикой.
+   cb зовётся ровно один раз — когда арт дорисован (или точно не загрузится);
+   preImg — уже загруженный арт, чтобы не качать его из сети второй раз */
+function drawTypeCard(cv,typ,index,cb,preImg){
   var ctx=cv.getContext('2d');
-  var bg=null,ART_H=920;
+  var bg=null,ART_H=920,settled=false;
+  function finish(){if(settled)return;settled=true;if(cb)cb();}
   function paint(){ctx.clearRect(0,0,1080,1350);
     ctx.fillStyle='#F4F1EA';ctx.fillRect(0,0,1080,1350);
     if(bg){ /* cover; вертикальную обрезку целим по композиции конкретного арта */
@@ -186,12 +189,14 @@ function drawTypeCard(cv,typ,index,cb){
     ctx.font='500 46px Inter, sans-serif';
     ctx.fillText(typ.emoji+'  ресурс '+index+' из 100',540,lines.length>1?1262:1230);
     ctx.fillStyle='#6E6A5F';ctx.font='400 27px Inter, sans-serif';
-    ctx.fillText('замерь свой ресурс · dzen',540,1315);
-    if(cb)cb();}
-  var im=new Image();im.src=window.DZEN_ASSETS+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
-  im.onload=function(){bg=im;paint();};im.onerror=paint;
-  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paint);
-  paint();}
+    ctx.fillText('замерь свой ресурс · dzen',540,1315);}
+  paint();
+  var im=preImg||new Image();
+  if(!preImg)im.src=window.DZEN_ASSETS+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
+  if(im.complete&&im.naturalWidth>0){bg=im;paint();finish();}
+  else{im.onload=function(){bg=im;paint();finish();};
+       im.onerror=function(){paint();finish();};}
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(paint);}
 function shareCard(cv,text){
   cv.toBlob(function(b){var f=new File([b],'dzen.png',{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[f]})){

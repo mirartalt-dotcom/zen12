@@ -282,20 +282,23 @@ function onbDone(){
         botMsg('Принял, поднимаю до '+S.quiz.index+'. Люблю оптимистов.',showType);}},
       {t:'Пониже',fn:function(){meMsg('Пониже');bumpIndex(-10);
         botMsg('Честно. Опускаю до '+S.quiz.index+' — честный замер полезнее красивого.',showType);}}]);
-    /* свободный ответ тоже понимаем: «в точку», «у меня выше/ниже», «у меня 70» */
-    expect(function(text){
+    /* свободный ответ тоже понимаем: «в точку», «у меня выше/ниже», «у меня 70»;
+       настоящий вопрос человека — эксперту (как в armChoice), и продолжаем ждать ответ на «Угадал?» */
+    var onGuess=function(text){
       var t=' '+wordsToNums(text.toLowerCase())+' ';
       var n=num0100(text);
-      clearChips();
-      if(n!==null){S.quiz.index=Math.max(5,Math.min(95,n));S.quiz.a.energy=S.quiz.index;save();
+      if(n!==null){clearChips();S.quiz.index=Math.max(5,Math.min(95,n));S.quiz.a.energy=S.quiz.index;save();
         botMsg('Принял, записываю '+S.quiz.index+'. Самозамер — тоже замер.',showType);}
-      else if(/точку|точно|угадал|похоже|прав | да /.test(t)){botMsg('Я же банка. Мне сверху видно 😌',showType);}
-      else if(/выше|больше|получше|повыше|бодрее|лучше/.test(t)){bumpIndex(10);
+      else if(/[?？]/.test(text)||/(почему|зачем|что это|что за|как это|как связан|расскажи|объясни|а если|кто ты|посоветуй|помоги)/.test(t)){
+        botTalk(text);expect(onGuess);}
+      else if(/точку|точно|угадал|похоже|прав | да /.test(t)){clearChips();botMsg('Я же банка. Мне сверху видно 😌',showType);}
+      else if(/выше|больше|получше|повыше|бодрее|лучше/.test(t)){clearChips();bumpIndex(10);
         botMsg('Принял, поднимаю до '+S.quiz.index+'. Люблю оптимистов.',showType);}
-      else if(/ниже|меньше|хуже|пониже|устал/.test(t)){bumpIndex(-10);
+      else if(/ниже|меньше|хуже|пониже|устал/.test(t)){clearChips();bumpIndex(-10);
         botMsg('Честно. Опускаю до '+S.quiz.index+' — честный замер полезнее красивого.',showType);}
-      else showType();
-      return true;});});});});}
+      else{clearChips();showType();}
+      return true;};
+    expect(onGuess);});});});}
 function bumpIndex(d){S.quiz.index=Math.max(5,Math.min(95,S.quiz.index+d));S.quiz.a.energy=S.quiz.index;save();}
 function showType(){
   clearChips();
@@ -304,26 +307,27 @@ function showType(){
 /* карточка типажа — по образцу finale(): canvas → картинка в сообщении бота → чипы → продолжение потока */
 function showTypeCard(typ){
   var cv=document.createElement('canvas');cv.width=1080;cv.height=1350;
-  /* сначала грузим арт-постер (дальше он берётся из кэша), потом рисуем и показываем */
-  var started=false;
-  function go(){if(started)return;started=true;
-  drawTypeCard(cv,typ,S.quiz.index,null);
-  setTimeout(function(){
+  /* арт грузим один раз и отдаём в отрисовку — она сама дождётся его и отчитается коллбеком,
+     только после этого забираем превьюшку (раньше тут был таймер 600 мс и гонка) */
+  var pre=new Image();pre.src=A+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
+  var shown=false;
+  function show(){if(shown)return;shown=true;
     var d=document.createElement('div');d.className='msg bot';
     var img=new Image();img.className='msg-img';img.src=cv.toDataURL('image/jpeg',.92);
     d.appendChild(img);SCROLL.appendChild(d);down();
-    chips([{t:'📤 Поделиться',fn:function(){shareCard(cv,'Мой типаж: '+typ.emoji+' '+typ.name+'. Индекс ресурса '+S.quiz.index+' из 100. Замерь свой:');afterTypeCard();}},
-           {t:'💾 Скачать',fn:function(){saveCard(cv);afterTypeCard();}},
-           {t:'Дальше',fn:function(){afterTypeCard();}}]);
-    expect(function(text){afterTypeCard();return true;});
-  },600);}
-  /* ждём и арт, и фирменный шрифт (он нигде больше не используется — надо догрузить явно) */
-  var ready=0;function step(){ready++;if(ready>=2)go();}
-  var pre=new Image();pre.src=A+'img/'+(TYPE_IMG[typ.id]||'frame_achieve')+'.jpg';
-  pre.onload=step;pre.onerror=step;
+    /* клик по кнопке обязан снимать pending — иначе он перехватит первое сообщение в свободном чате */
+    chips([{t:'📤 Поделиться',fn:function(){pending=null;shareCard(cv,'Мой типаж: '+typ.emoji+' '+typ.name+'. Индекс ресурса '+S.quiz.index+' из 100. Замерь свой:');afterTypeCard();}},
+           {t:'💾 Скачать',fn:function(){pending=null;saveCard(cv);afterTypeCard();}},
+           {t:'Дальше',fn:function(){pending=null;afterTypeCard();}}]);
+    expect(function(text){afterTypeCard();return true;});}
+  var started=false;
+  function go(){if(started)return;started=true;
+    drawTypeCard(cv,typ,S.quiz.index,show,pre);
+    setTimeout(show,3000);/* страховка: если арт совсем не доехал, показываем плашку без него */}
+  /* фирменный шрифт нигде больше не используется — надо догрузить явно до отрисовки */
   if(document.fonts&&document.fonts.load)
-    document.fonts.load('italic 600 100px "Cormorant Garamond"').then(step,step);
-  else step();
+    document.fonts.load('italic 600 100px "Cormorant Garamond"').then(go,go);
+  else go();
   setTimeout(go,3000);}
 function afterTypeCard(){
   /* личный разбор: главная утечка + 2 точных совета по ответам, без «вернись завтра» */
