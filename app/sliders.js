@@ -83,7 +83,7 @@ document.getElementById('app').innerHTML=
 '  <div class="card" id="habit-card"></div>'+
 '  <div class="dzen-banner"><img src="'+A+'img/poster_drink.jpg" alt="">'+
 '   <div><div class="dzen-banner-title">Энергия любит пузырьки</div>'+
-'   <p class="small">DZEN — газировка без сахара, с клетчаткой для микробиоты. Польза, которую не надо терпеть. Ищи в Додо Пицце.</p></div></div>'+
+'   <p class="small">DZEN — газировка без добавленного сахара, с клетчаткой для микробиоты. Польза, которую не надо терпеть. Ищи в Додо Пицце.</p></div></div>'+
 '  <div class="home-foot tiny"><a href="#" id="btn-demo">демо: через неделю</a><a href="#" id="btn-ai">ИИ для голоса</a><a href="../" id="btn-hub">другие версии</a><a href="#" id="btn-reset">заново</a></div>'+
 ' </div></section>'+
 
